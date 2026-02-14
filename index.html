@@ -3,55 +3,34 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>TJ 센터용 빠른검색</title>
+<title>TJ 센터 빠른검색</title>
 <meta name="theme-color" content="#ffffff"/>
 <style>
-body{
-  font-family:system-ui,-apple-system,Segoe UI,Roboto,Apple SD Gothic Neo,Noto Sans KR,sans-serif;
-  margin:0;padding:20px;background:#fff;
-}
-h1{font-size:22px;margin-bottom:14px;}
-input{
-  width:100%;
-  font-size:22px;
-  padding:16px;
-  border:1px solid #ccc;
-  border-radius:16px;
-  margin-bottom:12px;
-}
-button{
-  font-size:20px;
-  padding:16px;
-  border:0;
-  border-radius:16px;
-  cursor:pointer;
-}
-.row{display:flex;gap:10px;margin-bottom:10px;}
-.row button{flex:1;}
-.section{margin-top:20px;}
-.list button{
-  width:100%;
-  text-align:left;
-  margin-bottom:8px;
-  background:#f3f3f3;
-}
-.small{font-size:14px;opacity:.7;}
+  body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Apple SD Gothic Neo,Noto Sans KR,sans-serif;margin:0;padding:20px;background:#fff;}
+  h1{font-size:22px;margin:0 0 14px 0;}
+  input{width:100%;font-size:22px;padding:16px;border:1px solid #ccc;border-radius:16px;margin-bottom:12px;}
+  button{font-size:20px;padding:16px;border:0;border-radius:16px;cursor:pointer;}
+  .row{display:flex;gap:10px;margin-bottom:10px;}
+  .row button{flex:1;}
+  .section{margin-top:18px;}
+  .list button{width:100%;text-align:left;margin-bottom:8px;background:#f3f3f3;}
+  .small{font-size:14px;opacity:.75;line-height:1.4;margin-top:10px;}
 </style>
 </head>
 <body>
 
 <h1>🎤 TJ 센터 빠른검색</h1>
 
-<input id="q" placeholder="곡 제목 / 가수 입력 또는 말로 입력"/>
+<input id="q" placeholder="곡 제목 / 가수 입력 후 ‘이동(Enter)’ 누르세요" inputmode="search" />
 
 <div class="row">
-  <button id="voice">🎙️ 말로 입력</button>
   <button id="copyOpen">🔎 복사 + TJ열기</button>
+  <button id="clear">🧹 지우기</button>
 </div>
 
 <div class="row">
   <button id="favSave">⭐ 즐겨찾기 추가</button>
-  <button id="clear">🧹 지우기</button>
+  <button id="select">🟦 선택(붙여넣기용)</button>
 </div>
 
 <div class="section">
@@ -65,85 +44,139 @@ button{
 </div>
 
 <p class="small">
-사용 흐름: 말로 입력 → 🔎복사+TJ열기 → TJ에서 붙여넣기
+✅ 사용: 곡명 입력 → <b>키보드 ‘이동/Enter’</b> 또는 <b>복사+TJ열기</b><br/>
+※ 복사가 막히면 <b>선택(붙여넣기용)</b> 눌러서 파란색으로 잡힌 상태로 TJ에서 붙여넣기 하시면 됩니다.
 </p>
 
 <script>
-const q = document.getElementById('q');
-const favBox = document.getElementById('favorites');
-const recentBox = document.getElementById('recent');
+  const q = document.getElementById('q');
+  const favBox = document.getElementById('favorites');
+  const recentBox = document.getElementById('recent');
 
-function saveRecent(text){
-  let arr = JSON.parse(localStorage.getItem('recent')||'[]');
-  arr = arr.filter(v=>v!==text);
-  arr.unshift(text);
-  arr = arr.slice(0,10);
-  localStorage.setItem('recent',JSON.stringify(arr));
-  renderRecent();
-}
+  function load(key){ return JSON.parse(localStorage.getItem(key)||'[]'); }
+  function save(key, arr){ localStorage.setItem(key, JSON.stringify(arr)); }
 
-function saveFav(text){
-  let arr = JSON.parse(localStorage.getItem('fav')||'[]');
-  if(!arr.includes(text)){
+  function saveRecent(text){
+    let arr = load('recent').filter(v => v !== text);
     arr.unshift(text);
-    localStorage.setItem('fav',JSON.stringify(arr));
+    arr = arr.slice(0, 10);
+    save('recent', arr);
+    renderRecent();
   }
-  renderFav();
-}
 
-function renderRecent(){
-  let arr = JSON.parse(localStorage.getItem('recent')||'[]');
-  recentBox.innerHTML='';
-  arr.forEach(text=>{
-    const b=document.createElement('button');
-    b.textContent=text;
-    b.onclick=()=>{q.value=text;}
-    recentBox.appendChild(b);
-  });
-}
+  function saveFav(text){
+    let arr = load('fav');
+    if(!arr.includes(text)){
+      arr.unshift(text);
+      save('fav', arr);
+    }
+    renderFav();
+  }
 
-function renderFav(){
-  let arr = JSON.parse(localStorage.getItem('fav')||'[]');
-  favBox.innerHTML='';
-  arr.forEach(text=>{
-    const b=document.createElement('button');
-    b.textContent=text;
-    b.onclick=()=>{q.value=text;}
-    favBox.appendChild(b);
-  });
-}
+  function renderRecent(){
+    const arr = load('recent');
+    recentBox.innerHTML = '';
+    arr.forEach(text=>{
+      const b=document.createElement('button');
+      b.textContent=text;
+      b.onclick=()=>{ q.value=text; q.focus(); };
+      recentBox.appendChild(b);
+    });
+  }
 
-document.getElementById('copyOpen').onclick=async()=>{
-  const text=q.value.trim();
-  if(!text) return alert('검색어를 입력하세요.');
-  await navigator.clipboard.writeText(text);
-  saveRecent(text);
-  window.open('https://www.tjmedia.com/song/accompaniment','_blank');
-};
+  function renderFav(){
+    const arr = load('fav');
+    favBox.innerHTML = '';
+    arr.forEach(text=>{
+      const wrap = document.createElement('div');
+      wrap.style.display = 'flex';
+      wrap.style.gap = '8px';
+      wrap.style.marginBottom = '8px';
 
-document.getElementById('favSave').onclick=()=>{
-  const text=q.value.trim();
-  if(!text) return;
-  saveFav(text);
-};
+      const b=document.createElement('button');
+      b.textContent=text;
+      b.style.flex='1';
+      b.style.background='#f3f3f3';
+      b.onclick=()=>{ q.value=text; q.focus(); };
 
-document.getElementById('clear').onclick=()=>{
-  q.value='';
-};
+      const del=document.createElement('button');
+      del.textContent='🗑';
+      del.style.width='64px';
+      del.onclick=()=>{
+        const next = load('fav').filter(v=>v!==text);
+        save('fav', next);
+        renderFav();
+      };
 
-document.getElementById('voice').onclick=()=>{
-  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-  if(!SR) return alert('Chrome 브라우저 사용 권장');
-  const rec=new SR();
-  rec.lang='ko-KR';
-  rec.onresult=e=>{
-    q.value=e.results[0][0].transcript;
+      wrap.appendChild(b);
+      wrap.appendChild(del);
+      favBox.appendChild(wrap);
+    });
+  }
+
+  async function copyToClipboard(text){
+    // 1) 최신 clipboard API
+    try{
+      await navigator.clipboard.writeText(text);
+      return true;
+    }catch(e){}
+    // 2) 대체 방식
+    try{
+      q.focus();
+      q.select();
+      const ok = document.execCommand('copy');
+      return ok;
+    }catch(e){}
+    return false;
+  }
+
+  function openTJ(){
+    window.open('https://www.tjmedia.com/song/accompaniment', '_blank');
+  }
+
+  async function go(){
+    const text = q.value.trim();
+    if(!text) return alert('검색어를 입력하세요.');
+    saveRecent(text);
+    const ok = await copyToClipboard(text);
+    openTJ();
+    if(!ok){
+      // 복사 실패 대비: 선택 상태 유지
+      q.focus();
+      q.select();
+      alert('복사가 막혔어요. 파란색으로 선택된 상태에서 TJ에서 붙여넣기 하세요.');
+    }
+  }
+
+  document.getElementById('copyOpen').onclick = go;
+
+  document.getElementById('clear').onclick = ()=>{
+    q.value='';
+    q.focus();
   };
-  rec.start();
-};
 
-renderRecent();
-renderFav();
+  document.getElementById('favSave').onclick = ()=>{
+    const text=q.value.trim();
+    if(!text) return alert('즐겨찾기에 넣을 곡명을 먼저 입력하세요.');
+    saveFav(text);
+  };
+
+  document.getElementById('select').onclick = ()=>{
+    q.focus();
+    q.select();
+  };
+
+  // ✅ 핵심: 키보드 ‘이동/Enter’ 누르면 자동 실행
+  q.addEventListener('keydown', (e)=>{
+    if(e.key === 'Enter'){
+      e.preventDefault();
+      go();
+    }
+  });
+
+  renderRecent();
+  renderFav();
+  q.focus();
 </script>
 
 </body>
